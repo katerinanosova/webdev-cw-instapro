@@ -1,4 +1,4 @@
-import { getPosts } from "./api.js";
+import { getPosts, getUserPosts } from "./api.js";
 import { renderAddPostPageComponent } from "./components/add-post-page-component.js";
 import { renderAuthPageComponent } from "./components/auth-page-component.js";
 import {
@@ -16,11 +16,12 @@ import {
   saveUserToLocalStorage,
 } from "./helpers.js";
 
+
 export let user = getUserFromLocalStorage();
 export let page = null;
 export let posts = [];
 
-const getToken = () => {
+export const getToken = () => {
   const token = user ? `Bearer ${user.token}` : undefined;
   return token;
 };
@@ -67,11 +68,23 @@ export const goToPage = (newPage, data) => {
     }
 
     if (newPage === USER_POSTS_PAGE) {
+      page = LOADING_PAGE;
+      renderApp();
+
+      return getUserPosts({ token: getToken(), userId: data.userId }).then((newPosts) => {
+        page = USER_POSTS_PAGE;
+        posts = newPosts;
+        renderApp();
+      }).catch((error) => {
+        console.error(error);
+        goToPage(USER_POSTS_PAGE);
+      });
+
       // TODO: реализовать получение постов юзера из API
-      console.log("Открываю страницу пользователя: ", data.userId);
-      page = USER_POSTS_PAGE;
-      posts = [];
-      return renderApp();
+    //   console.log("Открываю страницу пользователя: ", data.userId);
+    //   page = USER_POSTS_PAGE;
+    //   posts = [];
+    //   return renderApp();
     }
 
     page = newPage;
@@ -107,11 +120,30 @@ const renderApp = () => {
   }
 
   if (page === ADD_POSTS_PAGE) {
+
     return renderAddPostPageComponent({
       appEl,
       onAddPostClick({ description, imageUrl }) {
+        fetch('https://wedev-api.sky.pro/api/v1/prod/instapro', {
+          method: 'POST',
+          body: JSON.stringify({
+            description: description,
+            imageUrl: imageUrl
+          }),
+          headers: {
+            Authorization: getToken()
+          }
+        }).then((response) => {
+          if (response.status === 500) {
+            throw new Error('Ошибка сервера');
+          }
+          if (response.status === 400) {
+            throw new Error('Неверный запрос');
+          }
+          return response.json();
+        })
         // TODO: реализовать добавление поста в API
-        console.log("Добавляю пост...", { description, imageUrl });
+        // console.log("Добавляю пост...", { description, imageUrl });
         goToPage(POSTS_PAGE);
       },
     });
@@ -124,9 +156,13 @@ const renderApp = () => {
   }
 
   if (page === USER_POSTS_PAGE) {
+    return renderPostsPageComponent({
+      appEl,
+    });
+
     // TODO: реализовать страницу фотографию пользвателя
-    appEl.innerHTML = "Здесь будет страница фотографий пользователя";
-    return;
+    // appEl.innerHTML = "Здесь будет страница фотографий пользователя";
+    // return;
   }
 };
 
