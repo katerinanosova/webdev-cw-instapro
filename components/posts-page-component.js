@@ -74,11 +74,17 @@ export function renderPostsPageComponent({ appEl }) {
         getDisliked({
           postId: likeEl.dataset.postId,
           token: getToken()
-          }).then(goToPage(POSTS_PAGE))
+          }).then(() => {
+            posts[i].isLiked = false,
+            goToPage(POSTS_PAGE)
+          })
         : getLiked({
           postId: likeEl.dataset.postId,
           token: getToken()
-          }).then(goToPage(POSTS_PAGE))
+          }).then(() => {
+            posts[i].isLiked = true,
+            goToPage(POSTS_PAGE)
+          })
       }
       else {
         alert('Добавлять и убирать лайки могут только авторизованные пользователи')
